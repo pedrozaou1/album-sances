@@ -352,12 +352,16 @@ async function abrirPacote() {
     return;
   }
 
-  const novoTotal = usuarioAtual.pacotes - 1;
+const novoTotal = usuarioAtual.pacotes - 1;
+const novoTotalAbertos = (usuarioAtual.pacotes_abertos || 0) + 1;
 
-  const { error } = await db
-    .from("profiles")
-    .update({ pacotes: novoTotal })
-    .eq("id", usuarioAtualId);
+const { error } = await db
+  .from("profiles")
+  .update({
+    pacotes: novoTotal,
+    pacotes_abertos: novoTotalAbertos
+  })
+  .eq("id", usuarioAtualId);
 
   if (error) {
     alert("Erro ao abrir pacote.");
@@ -365,6 +369,7 @@ async function abrirPacote() {
   }
 
   usuarioAtual.pacotes = novoTotal;
+  usuarioAtual.pacotes_abertos = novoTotalAbertos;
   atualizarContadorPacotes();
 
   criarPopupPacote();
@@ -532,7 +537,11 @@ async function atualizarRanking() {
       <div>
         <strong>${index + 1}º</strong>
         ${pessoa.nome} - ${pessoa.setor}
-        <span>${pessoa.unicas}/${figurinhas.length} únicas | ${pessoa.total} total</span>
+        <span>
+        ${pessoa.unicas}/${figurinhas.length} únicas |
+        ${pessoa.total} figurinhas |
+        ${pessoa.pacotes_abertos || 0} pacotes abertos
+</span>
       </div>
     `;
   });
