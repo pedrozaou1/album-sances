@@ -622,3 +622,10 @@ p {
   from { opacity:.35; transform:scale(1); }
   to { opacity:.9; transform:scale(1.25); }
 }
+
+.pack-stats {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
