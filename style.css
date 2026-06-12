@@ -1,7 +1,6 @@
 :root {
   --verde-sances:#008c8c;
   --verde-claro:#00aa98;
-  --azul-sances:#00b7c2;
   --roxo-head:#8b5cf6;
   --laranja:#ff8f1c;
   --dourado:#ffd34d;
@@ -256,9 +255,10 @@ p {
   transform:translateY(-8px) scale(1.03);
 }
 
+.card-incomum,
 .card-normal {
-  border-color:var(--azul-sances);
-  box-shadow:0 0 18px rgba(0,183,194,.35);
+  border-color:var(--verde-claro);
+  box-shadow:0 0 18px rgba(0,170,152,.38);
 }
 
 .card-rara {
@@ -281,6 +281,16 @@ p {
   align-items:center;
   justify-content:center;
   font-size:42px;
+  overflow:hidden;
+}
+
+.photo img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  border-radius:50%;
+  display:block;
 }
 
 .card h3 {
@@ -290,20 +300,24 @@ p {
 .card span {
   color:var(--verde-claro);
   font-size:14px;
+  display:block;
+  margin-bottom:8px;
 }
 
 .raridade {
-  display:inline-block;
-  margin-top:10px;
+  display:block;
+  width:fit-content;
+  margin:10px auto 0;
   padding:6px 10px;
   border-radius:999px;
   font-size:12px;
   font-weight:bold;
 }
 
+.raridade-incomum,
 .raridade-normal {
-  background:rgba(0,183,194,.18);
-  color:var(--azul-sances);
+  background:rgba(0,170,152,.18);
+  color:var(--verde-claro);
 }
 
 .raridade-rara {
@@ -314,6 +328,13 @@ p {
 .raridade-lendaria {
   background:rgba(255,211,77,.18);
   color:var(--dourado);
+}
+
+.pack-stats {
+  display:flex;
+  gap:22px;
+  flex-wrap:wrap;
+  margin-bottom:24px;
 }
 
 .pack-info {
@@ -427,7 +448,7 @@ p {
 }
 
 .ranking-list {
-  max-width:760px;
+  max-width:860px;
 }
 
 .ranking-list div {
@@ -446,6 +467,58 @@ p {
 
 .ranking-list span {
   color:var(--laranja);
+}
+
+.logs-list {
+  max-width:850px;
+}
+
+.log-item {
+  padding:18px;
+  margin-bottom:14px;
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+}
+
+.log-user {
+  color:var(--verde-claro);
+  display:block;
+  margin-bottom:6px;
+}
+
+.log-action {
+  color:var(--laranja);
+  font-weight:bold;
+  display:block;
+  margin-bottom:8px;
+}
+
+.log-detail {
+  margin:8px 0;
+  color:#ddd;
+  line-height:1.5;
+}
+
+.log-card-name {
+  font-weight:bold;
+  display:inline !important;
+}
+
+.log-raridade-incomum {
+  color:var(--verde-claro) !important;
+}
+
+.log-raridade-rara {
+  color:var(--roxo-head) !important;
+}
+
+.log-raridade-lendaria {
+  color:var(--dourado) !important;
+}
+
+.log-item small {
+  color:#aaa;
 }
 
 .admin-panel {
@@ -621,11 +694,4 @@ p {
 @keyframes glowPulse {
   from { opacity:.35; transform:scale(1); }
   to { opacity:.9; transform:scale(1.25); }
-}
-
-.pack-stats {
-  display: flex;
-  gap: 22px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
 }
