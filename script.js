@@ -23,6 +23,10 @@ botoes.forEach(botao => {
 
     botao.classList.add("active");
     document.getElementById(botao.dataset.tab).classList.add("active");
+
+    if (botao.dataset.tab === "transparencia") {
+      carregarLogs();
+    }
   });
 });
 
@@ -50,8 +54,10 @@ function verificarAdmin(nome, login) {
 
   return (
     nomeLimpo === "pedro" ||
+    nomeLimpo === "jana" ||
     nomeLimpo === "janaina" ||
     loginLimpo === "pedro" ||
+    loginLimpo === "jana" ||
     loginLimpo === "janaina"
   );
 }
@@ -67,11 +73,6 @@ async function cadastrarFuncionario() {
 
   if (!nome || !setor || !login || !senha) {
     erro.textContent = "Preencha todos os campos.";
-    return;
-  }
-
-  if (login.length < 3) {
-    erro.textContent = "O usuário precisa ter pelo menos 3 caracteres.";
     return;
   }
 
@@ -112,7 +113,8 @@ async function cadastrarFuncionario() {
     login,
     setor,
     admin,
-    pacotes: 0
+    pacotes: 0,
+    pacotes_abertos: 0
   });
 
   if (profileError) {
@@ -211,24 +213,68 @@ async function carregarFigurinhasBanco() {
 }
 
 function classeRaridade(fig) {
-  if (fig.raridade === "normal") return "card-normal";
+  if (fig.raridade === "incomum" || fig.raridade === "normal") return "card-incomum";
   if (fig.raridade === "rara") return "card-rara";
   if (fig.raridade === "lendaria") return "card-lendaria";
 }
 
+function classeLogRaridade(fig) {
+  if (fig.raridade === "incomum" || fig.raridade === "normal") return "log-raridade-incomum";
+  if (fig.raridade === "rara") return "log-raridade-rara";
+  if (fig.raridade === "lendaria") return "log-raridade-lendaria";
+  return "log-raridade-incomum";
+}
+
 function textoRaridade(fig) {
-  if (fig.raridade === "normal") return "Normal • 25%";
-  if (fig.raridade === "rara") return "Head • 10%";
-  if (fig.raridade === "lendaria") return "CEO • 5%";
+  if (fig.raridade === "incomum" || fig.raridade === "normal") return `Incomum • ${fig.chance}%`;
+  if (fig.raridade === "rara") return `Head • ${fig.chance}%`;
+  if (fig.raridade === "lendaria") return `CEO • ${fig.chance}%`;
+}
+
+function gerarSlugFoto(nome) {
+  return nome
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ç/g, "c")
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .replace(/\s+/g, "_");
+}
+
+function imagemOuEmoji(fig, bloqueada = false) {
+  if (bloqueada) {
+    return "❓";
+  }
+
+  const slug = gerarSlugFoto(fig.nome);
+  const fotoJpg = `img/${slug}_sances.jpg`;
+  const fotoPng = `img/${slug}_sances.png`;
+  const emoji = fig.emoji || "👤";
+
+  return `
+    <img
+      src="${fotoJpg}"
+      alt="${fig.nome}"
+      onerror="
+        if (!this.dataset.tentouPng) {
+          this.dataset.tentouPng = 'true';
+          this.src = '${fotoPng}';
+        } else {
+          this.parentElement.innerHTML = '${emoji}';
+        }
+      "
+    >
+  `;
 }
 
 function criarCardFigurinha(fig, bloqueada = false) {
   return `
     <div class="card ${classeRaridade(fig)} ${bloqueada ? "locked" : ""}">
-      <div class="photo">${bloqueada ? "❓" : fig.emoji}</div>
+      <div class="photo">${imagemOuEmoji(fig, bloqueada)}</div>
       <h3>${fig.nome}</h3>
       <span>${fig.setor}</span>
-      <small class="raridade raridade-${fig.raridade}">
+      <small class="raridade raridade-${fig.raridade === "normal" ? "incomum" : fig.raridade}">
         ${textoRaridade(fig)}
       </small>
     </div>
@@ -241,12 +287,12 @@ function carregarFigurinhasDisponiveis() {
 
   const ordemSetores = [
     "CEO",
+    "Comercial",
+    "Marketing",
     "Implantação",
     "RH",
     "Suporte",
-    "DEV",
-    "Comercial",
-    "Marketing"
+    "DEV"
   ];
 
   const setores = [
@@ -261,6 +307,7 @@ function carregarFigurinhasDisponiveis() {
         const ordemRaridade = {
           lendaria: 1,
           rara: 2,
+          incomum: 3,
           normal: 3
         };
 
@@ -352,16 +399,16 @@ async function abrirPacote() {
     return;
   }
 
-const novoTotal = usuarioAtual.pacotes - 1;
-const novoTotalAbertos = (usuarioAtual.pacotes_abertos || 0) + 1;
+  const novoTotal = usuarioAtual.pacotes - 1;
+  const novoTotalAbertos = (usuarioAtual.pacotes_abertos || 0) + 1;
 
-const { error } = await db
-  .from("profiles")
-  .update({
-    pacotes: novoTotal,
-    pacotes_abertos: novoTotalAbertos
-  })
-  .eq("id", usuarioAtualId);
+  const { error } = await db
+    .from("profiles")
+    .update({
+      pacotes: novoTotal,
+      pacotes_abertos: novoTotalAbertos
+    })
+    .eq("id", usuarioAtualId);
 
   if (error) {
     alert("Erro ao abrir pacote.");
@@ -370,6 +417,7 @@ const { error } = await db
 
   usuarioAtual.pacotes = novoTotal;
   usuarioAtual.pacotes_abertos = novoTotalAbertos;
+
   atualizarContadorPacotes();
 
   criarPopupPacote();
@@ -430,13 +478,35 @@ async function salvarFigurinhaNoAlbum(fig) {
   return true;
 }
 
+function montarMensagemFigurinhasEncontradas(figs) {
+  const nomesColoridos = figs.map(fig => {
+    return `<span class="log-card-name ${classeLogRaridade(fig)}">${fig.nome}</span>`;
+  });
+
+  let nomesTexto = "";
+
+  if (nomesColoridos.length === 1) {
+    nomesTexto = nomesColoridos[0];
+  } else if (nomesColoridos.length === 2) {
+    nomesTexto = `${nomesColoridos[0]} e ${nomesColoridos[1]}`;
+  } else {
+    nomesTexto = `${nomesColoridos[0]}, ${nomesColoridos[1]} e ${nomesColoridos[2]}`;
+  }
+
+  return `${usuarioAtual.nome} encontrou ${nomesTexto}.`;
+}
+
 async function revelarFigurinhas() {
   const resultado = document.getElementById("resultadoPacote");
   resultado.innerHTML = "";
 
+  const figurinhasDoPacote = [];
+
   for (let i = 0; i < 3; i++) {
     const sorteada = sortearFigurinhaPorChance();
     const repetida = !!albumUsuario[sorteada.id];
+
+    figurinhasDoPacote.push(sorteada);
 
     const ok = await salvarFigurinhaNoAlbum(sorteada);
 
@@ -444,16 +514,21 @@ async function revelarFigurinhas() {
 
     resultado.innerHTML += `
       <div class="card new-card ${classeRaridade(sorteada)}">
-        <div class="photo">${sorteada.emoji}</div>
+        <div class="photo">${imagemOuEmoji(sorteada, false)}</div>
         <h3>${sorteada.nome}</h3>
         <span>${sorteada.setor}</span>
-        <small class="raridade raridade-${sorteada.raridade}">
+        <small class="raridade raridade-${sorteada.raridade === "normal" ? "incomum" : sorteada.raridade}">
           ${textoRaridade(sorteada)}
         </small>
         ${repetida ? `<small class="repeat">Repetida</small>` : `<small class="new">Nova figurinha</small>`}
       </div>
     `;
   }
+
+  await registrarLog(
+    "FIGURINHA ENCONTRADA",
+    montarMensagemFigurinhasEncontradas(figurinhasDoPacote)
+  );
 
   await carregarAlbumUsuario();
   await atualizarPerfilUsuario();
@@ -462,6 +537,7 @@ async function revelarFigurinhas() {
   atualizarContadorPacotes();
   await atualizarRanking();
   await atualizarGerencial();
+  await carregarLogs();
 }
 
 function atualizarAlbum() {
@@ -478,10 +554,10 @@ function atualizarAlbum() {
       cards += `
         <div class="card album-card ${classeRaridade(fig)}">
           <div class="quantity-badge">${albumUsuario[fig.id].quantidade}</div>
-          <div class="photo">${fig.emoji}</div>
+          <div class="photo">${imagemOuEmoji(fig, false)}</div>
           <h3>${fig.nome}</h3>
           <span>${fig.setor}</span>
-          <small class="raridade raridade-${fig.raridade}">
+          <small class="raridade raridade-${fig.raridade === "normal" ? "incomum" : fig.raridade}">
             ${textoRaridade(fig)}
           </small>
         </div>
@@ -528,7 +604,7 @@ async function atualizarRanking() {
       unicas,
       total
     };
-  }).sort((a, b) => b.unicas - a.unicas || b.total - a.total);
+  }).sort((a, b) => b.unicas - a.unicas || b.total - a.total || b.pacotes_abertos - a.pacotes_abertos);
 
   rankingLista.innerHTML = "";
 
@@ -538,10 +614,10 @@ async function atualizarRanking() {
         <strong>${index + 1}º</strong>
         ${pessoa.nome} - ${pessoa.setor}
         <span>
-        ${pessoa.unicas}/${figurinhas.length} únicas |
-        ${pessoa.total} figurinhas |
-        ${pessoa.pacotes_abertos || 0} pacotes abertos
-</span>
+          ${pessoa.unicas}/${figurinhas.length} únicas |
+          ${pessoa.total} figurinhas |
+          ${pessoa.pacotes_abertos || 0} pacotes abertos
+        </span>
       </div>
     `;
   });
@@ -610,6 +686,17 @@ async function adicionarPacotes(idPessoa) {
     .update({ pacotes: novoTotal })
     .eq("id", idPessoa);
 
+  const { data: usuarioDestino } = await db
+    .from("profiles")
+    .select("nome")
+    .eq("id", idPessoa)
+    .single();
+
+  await registrarLog(
+    "PACOTE RECEBIDO",
+    `${usuarioDestino.nome} recebeu ${quantidade} pacote(s) de ${usuarioAtual.nome}.`
+  );
+
   if (idPessoa === usuarioAtualId) {
     usuarioAtual.pacotes = novoTotal;
     atualizarContadorPacotes();
@@ -617,6 +704,7 @@ async function adicionarPacotes(idPessoa) {
 
   await atualizarGerencial();
   await atualizarRanking();
+  await carregarLogs();
 }
 
 async function removerPacotes(idPessoa) {
@@ -649,6 +737,17 @@ async function removerPacotes(idPessoa) {
     .update({ pacotes: novoTotal })
     .eq("id", idPessoa);
 
+  const { data: usuarioDestino } = await db
+    .from("profiles")
+    .select("nome")
+    .eq("id", idPessoa)
+    .single();
+
+  await registrarLog(
+    "PACOTE REMOVIDO",
+    `${usuarioDestino.nome} perdeu ${quantidade} pacote(s) por ação de ${usuarioAtual.nome}.`
+  );
+
   if (idPessoa === usuarioAtualId) {
     usuarioAtual.pacotes = novoTotal;
     atualizarContadorPacotes();
@@ -656,6 +755,7 @@ async function removerPacotes(idPessoa) {
 
   await atualizarGerencial();
   await atualizarRanking();
+  await carregarLogs();
 }
 
 async function adicionarFigurinha() {
@@ -678,7 +778,7 @@ async function adicionarFigurinha() {
   }
 
   if (raridade === "lendaria") {
-    chance = 5;
+    chance = 3;
   }
 
   const { error } = await db.from("stickers").insert({
@@ -703,6 +803,48 @@ async function adicionarFigurinha() {
   await carregarTudoOnline();
 }
 
+async function registrarLog(acao, detalhe = "") {
+  if (!usuarioAtual) return;
+
+  await db.from("logs").insert({
+    usuario_nome: usuarioAtual.nome,
+    acao,
+    detalhe
+  });
+}
+
+async function carregarLogs() {
+  const lista = document.getElementById("listaLogs");
+
+  if (!lista) return;
+
+  const { data, error } = await db
+    .from("logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(150);
+
+  if (error) {
+    lista.innerHTML = "<p>Erro ao carregar transparência.</p>";
+    return;
+  }
+
+  lista.innerHTML = "";
+
+  data.forEach(log => {
+    const dataFormatada = new Date(log.created_at).toLocaleString("pt-BR");
+
+    lista.innerHTML += `
+      <div class="log-item">
+        <strong class="log-user">${log.usuario_nome}</strong>
+        <span class="log-action">${log.acao}</span>
+        <p class="log-detail">${log.detalhe || ""}</p>
+        <small>${dataFormatada}</small>
+      </div>
+    `;
+  });
+}
+
 async function carregarTudoOnline() {
   await carregarFigurinhasBanco();
   carregarFigurinhasDisponiveis();
@@ -713,6 +855,7 @@ async function carregarTudoOnline() {
   atualizarContadorPacotes();
   await atualizarRanking();
   await atualizarGerencial();
+  await carregarLogs();
 }
 
 async function verificarSessaoAtiva() {
