@@ -86,18 +86,25 @@
       <div id="listaFigurinhas"></div>
     </section>
 
-    <section id="pacotes" class="tab">
-      <h2>Pacotes</h2>
-      <p>Abra pacotes surpresa e descubra novas figurinhas.</p>
+ <section id="pacotes" class="tab">
+  <h2>Pacotes</h2>
+  <p>Abra pacotes surpresa e descubra novas figurinhas.</p>
 
-      <div class="pack-info">
-        <h3>Seus pacotes</h3>
-        <strong id="contadorPacotes">0</strong>
-      </div>
+  <div class="pack-stats">
+    <div class="pack-info">
+      <h3>PACOTES DISPONÍVEIS</h3>
+      <strong id="contadorPacotes">0</strong>
+    </div>
 
-      <button class="open-pack" onclick="abrirPacote()">Abrir pacote 🎁</button>
-      <div id="resultadoPacote" class="pack-result"></div>
-    </section>
+    <div class="pack-info">
+      <h3>PACOTES ABERTOS</h3>
+      <strong id="contadorPacotesAbertos">0</strong>
+    </div>
+  </div>
+
+  <button class="open-pack" onclick="abrirPacote()">Abrir pacote 🎁</button>
+  <div id="resultadoPacote" class="pack-result"></div>
+</section>
 
     <section id="album" class="tab"></section>
 
