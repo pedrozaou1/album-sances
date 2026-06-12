@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Álbum Digital Sances</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="telaLogin" class="login-screen">
+  <div class="login-card">
+    <img src="img/principal.png" class="login-logo" alt="Sances">
+
+    <div id="areaLogin">
+      <h1>Álbum Digital</h1>
+      <p>Acesse seu álbum de figurinhas da Sances.</p>
+
+      <input id="loginFuncionario" type="text" placeholder="Usuário">
+      <input id="senhaFuncionario" type="password" placeholder="Senha">
+
+      <button onclick="fazerLoginFuncionario()">Entrar</button>
+      <small id="erroLoginFuncionario"></small>
+
+      <p class="switch-text">
+        Ainda não tem conta?
+        <button class="link-btn" onclick="mostrarCadastro()">Criar cadastro</button>
+      </p>
+    </div>
+
+    <div id="areaCadastro" class="hidden">
+      <h1>Criar conta</h1>
+      <p>Cadastre seu acesso ao álbum digital.</p>
+
+      <input id="cadastroNome" type="text" placeholder="Nome completo">
+      <select id="cadastroSetor">
+        <option value="">Selecione seu setor</option>
+        <option value="CEO">CEO</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Implantação">Implantação</option>
+        <option value="Suporte">Suporte</option>
+        <option value="DEV">DEV</option>
+        <option value="RH">RH</option>
+      </select>
+      <input id="cadastroLogin" type="text" placeholder="Crie seu usuário">
+      <input id="cadastroSenha" type="password" placeholder="Crie sua senha">
+
+      <button onclick="cadastrarFuncionario()">Cadastrar</button>
+      <small id="erroCadastro"></small>
+
+      <p class="switch-text">
+        Já tem conta?
+        <button class="link-btn" onclick="mostrarLogin()">Fazer login</button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<div id="appPrincipal" class="app hidden">
+
+  <aside class="sidebar">
+    <div class="logo-box">
+      <img src="img/principal.png" alt="Sances">
+    </div>
+
+    <div class="user-box">
+      <strong id="nomeUsuarioLogado"></strong>
+      <span id="setorUsuarioLogado"></span>
+    </div>
+
+    <button class="tab-btn active" data-tab="figurinhas">Figurinhas</button>
+    <button class="tab-btn" data-tab="pacotes">Pacotes</button>
+    <button class="tab-btn" data-tab="album">Meu Álbum</button>
+    <button class="tab-btn" data-tab="ranking">Ranking</button>
+    <button id="btnGerencial" class="tab-btn hidden" data-tab="gerencial">Gerencial</button>
+
+    <button class="logout-btn" onclick="sair()">Sair</button>
+  </aside>
+
+  <main class="content">
+
+    <section id="figurinhas" class="tab active">
+      <h2>Figurinhas</h2>
+      <p>Veja todas as figurinhas disponíveis por setor.</p>
+      <div id="listaFigurinhas"></div>
+    </section>
+
+    <section id="pacotes" class="tab">
+      <h2>Pacotes</h2>
+      <p>Abra pacotes surpresa e descubra novas figurinhas.</p>
+
+      <div class="pack-info">
+        <h3>Seus pacotes</h3>
+        <strong id="contadorPacotes">0</strong>
+      </div>
+
+      <button class="open-pack" onclick="abrirPacote()">Abrir pacote 🎁</button>
+      <div id="resultadoPacote" class="pack-result"></div>
+    </section>
+
+    <section id="album" class="tab"></section>
+
+    <section id="ranking" class="tab">
+      <h2>Ranking</h2>
+      <p>Quem está mais perto de completar o álbum.</p>
+      <div id="rankingLista" class="ranking-list"></div>
+    </section>
+
+    <section id="gerencial" class="tab">
+      <h2>Gerencial</h2>
+      <p>Área exclusiva para administradores.</p>
+
+      <div class="admin-panel">
+        <h3>Pacotes dos funcionários cadastrados</h3>
+        <div id="listaGerencial"></div>
+      </div>
+
+      <div class="admin-panel">
+        <h3>Adicionar nova figurinha</h3>
+
+        <input id="novaNome" placeholder="Nome">
+        <input id="novoSetor" placeholder="Setor">
+
+        <select id="novaRaridade">
+          <option value="normal">Normal - 25%</option>
+          <option value="rara">Head - 10%</option>
+          <option value="lendaria">CEO - 5%</option>
+        </select>
+
+        <input id="novoEmoji" placeholder="Emoji" value="👤">
+
+        <button onclick="adicionarFigurinha()">Adicionar figurinha</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>
