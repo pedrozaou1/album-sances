@@ -1,871 +1,697 @@
-const SUPABASE_URL = "https://qtiqywmdtgwvmkstrzob.supabase.co";
-const SUPABASE_KEY = "sb_publishable_8tgaaQbcXCINTRPUReTtpQ_DFK9Vo91";
-
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const botoes = document.querySelectorAll(".tab-btn");
-const abas = document.querySelectorAll(".tab");
-
-let usuarioAtual = null;
-let usuarioAtualId = null;
-let figurinhas = [];
-let albumUsuario = {};
-
-botoes.forEach(botao => {
-  botao.addEventListener("click", () => {
-    if (botao.dataset.tab === "gerencial" && (!usuarioAtual || !usuarioAtual.admin)) {
-      alert("Você não tem acesso à área gerencial.");
-      return;
-    }
-
-    botoes.forEach(b => b.classList.remove("active"));
-    abas.forEach(aba => aba.classList.remove("active"));
-
-    botao.classList.add("active");
-    document.getElementById(botao.dataset.tab).classList.add("active");
-
-    if (botao.dataset.tab === "transparencia") {
-      carregarLogs();
-    }
-  });
-});
-
-function mostrarCadastro() {
-  document.getElementById("areaLogin").classList.add("hidden");
-  document.getElementById("areaCadastro").classList.remove("hidden");
+:root {
+  --verde-sances:#008c8c;
+  --verde-claro:#00aa98;
+  --roxo-head:#8b5cf6;
+  --laranja:#ff8f1c;
+  --dourado:#ffd34d;
+  --vermelho:#c9182b;
 }
 
-function mostrarLogin() {
-  document.getElementById("areaCadastro").classList.add("hidden");
-  document.getElementById("areaLogin").classList.remove("hidden");
+* {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, Helvetica, sans-serif;
 }
 
-function limparTexto(texto) {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
+body {
+  min-height:100vh;
+  background:linear-gradient(135deg,#061112,#082526,#101010);
+  color:white;
 }
 
-function verificarAdmin(nome, login) {
-  const nomeLimpo = limparTexto(nome);
-  const loginLimpo = limparTexto(login);
-
-  return (
-    nomeLimpo === "pedro" ||
-    nomeLimpo === "jana" ||
-    nomeLimpo === "janaina" ||
-    loginLimpo === "pedro" ||
-    loginLimpo === "jana" ||
-    loginLimpo === "janaina"
-  );
+.hidden {
+  display:none !important;
 }
 
-async function cadastrarFuncionario() {
-  const nome = document.getElementById("cadastroNome").value.trim();
-  const setor = document.getElementById("cadastroSetor").value;
-  const login = document.getElementById("cadastroLogin").value.trim().toLowerCase();
-  const senha = document.getElementById("cadastroSenha").value;
-  const erro = document.getElementById("erroCadastro");
-
-  erro.textContent = "";
-
-  if (!nome || !setor || !login || !senha) {
-    erro.textContent = "Preencha todos os campos.";
-    return;
-  }
-
-  if (senha.length < 6) {
-    erro.textContent = "A senha precisa ter pelo menos 6 caracteres.";
-    return;
-  }
-
-  const { data: perfilComLogin } = await db
-    .from("profiles")
-    .select("id")
-    .eq("login", login)
-    .maybeSingle();
-
-  if (perfilComLogin) {
-    erro.textContent = "Esse usuário já está em uso.";
-    return;
-  }
-
-  const emailFake = `${login}@sances.app`;
-
-  const { data, error } = await db.auth.signUp({
-    email: emailFake,
-    password: senha
-  });
-
-  if (error) {
-    erro.textContent = "Erro ao cadastrar: " + error.message;
-    return;
-  }
-
-  const admin = verificarAdmin(nome, login);
-
-  const { error: profileError } = await db.from("profiles").insert({
-    id: data.user.id,
-    sticker_id: null,
-    nome,
-    login,
-    setor,
-    admin,
-    pacotes: 0,
-    pacotes_abertos: 0
-  });
-
-  if (profileError) {
-    erro.textContent = "Erro ao criar perfil: " + profileError.message;
-    return;
-  }
-
-  alert(`Cadastro criado com sucesso. Seu usuário é: ${login}`);
-
-  mostrarLogin();
-
-  document.getElementById("loginFuncionario").value = login;
-  document.getElementById("senhaFuncionario").value = "";
-  document.getElementById("cadastroNome").value = "";
-  document.getElementById("cadastroSetor").value = "";
-  document.getElementById("cadastroLogin").value = "";
-  document.getElementById("cadastroSenha").value = "";
+.login-screen {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:30px;
+  background:
+    radial-gradient(circle at top,rgba(0,170,152,.28),transparent 35%),
+    linear-gradient(135deg,#061112,#082526,#101010);
 }
 
-async function fazerLoginFuncionario() {
-  const login = document.getElementById("loginFuncionario").value.trim().toLowerCase();
-  const senha = document.getElementById("senhaFuncionario").value;
-  const erro = document.getElementById("erroLoginFuncionario");
-
-  erro.textContent = "";
-
-  if (!login || !senha) {
-    erro.textContent = "Informe usuário e senha.";
-    return;
-  }
-
-  const emailFake = `${login}@sances.app`;
-
-  const { data, error } = await db.auth.signInWithPassword({
-    email: emailFake,
-    password: senha
-  });
-
-  if (error) {
-    erro.textContent = "Usuário ou senha incorretos.";
-    return;
-  }
-
-  await carregarPerfil(data.user.id);
+.login-card {
+  width:100%;
+  max-width:430px;
+  padding:38px;
+  border-radius:30px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+  backdrop-filter:blur(12px);
+  text-align:center;
 }
 
-async function carregarPerfil(idUsuario) {
-  const { data, error } = await db
-    .from("profiles")
-    .select("*")
-    .eq("id", idUsuario)
-    .single();
-
-  if (error || !data) {
-    alert("Perfil não encontrado.");
-    return;
-  }
-
-  usuarioAtual = data;
-  usuarioAtualId = data.id;
-
-  document.getElementById("telaLogin").classList.add("hidden");
-  document.getElementById("appPrincipal").classList.remove("hidden");
-
-  document.getElementById("nomeUsuarioLogado").textContent = data.nome;
-  document.getElementById("setorUsuarioLogado").textContent = data.setor;
-
-  if (data.admin) {
-    document.getElementById("btnGerencial").classList.remove("hidden");
-  } else {
-    document.getElementById("btnGerencial").classList.add("hidden");
-  }
-
-  await carregarTudoOnline();
+.login-logo {
+  width:190px;
+  margin-bottom:28px;
 }
 
-async function sair() {
-  await db.auth.signOut();
-  location.reload();
+.login-card h1 {
+  font-size:34px;
+  margin-bottom:10px;
 }
 
-async function carregarFigurinhasBanco() {
-  const { data, error } = await db
-    .from("stickers")
-    .select("*")
-    .eq("ativo", true)
-    .order("setor", { ascending: true })
-    .order("nome", { ascending: true });
-
-  if (error) {
-    alert("Erro ao carregar figurinhas.");
-    return;
-  }
-
-  figurinhas = data || [];
+.login-card p {
+  color:#ccc;
+  margin-bottom:24px;
 }
 
-function classeRaridade(fig) {
-  if (fig.raridade === "incomum" || fig.raridade === "normal") return "card-incomum";
-  if (fig.raridade === "rara") return "card-rara";
-  if (fig.raridade === "lendaria") return "card-lendaria";
+.login-card input,
+.login-card select,
+.admin-panel input,
+.admin-panel select {
+  width:100%;
+  padding:16px;
+  margin-bottom:14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.35);
+  color:white;
+  font-size:16px;
+  outline:none;
 }
 
-function classeLogRaridade(fig) {
-  if (fig.raridade === "incomum" || fig.raridade === "normal") return "log-raridade-incomum";
-  if (fig.raridade === "rara") return "log-raridade-rara";
-  if (fig.raridade === "lendaria") return "log-raridade-lendaria";
-  return "log-raridade-incomum";
+option {
+  background:#061112;
 }
 
-function textoRaridade(fig) {
-  if (fig.raridade === "incomum" || fig.raridade === "normal") return `Incomum • ${fig.chance}%`;
-  if (fig.raridade === "rara") return `Head • ${fig.chance}%`;
-  if (fig.raridade === "lendaria") return `CEO • ${fig.chance}%`;
+.login-card input:focus,
+.login-card select:focus,
+.admin-panel input:focus,
+.admin-panel select:focus {
+  border-color:var(--verde-claro);
+  box-shadow:0 0 18px rgba(0,170,152,.35);
 }
 
-function gerarSlugFoto(nome) {
-  return nome
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ç/g, "c")
-    .replace(/[^a-z0-9\s]/g, "")
-    .trim()
-    .replace(/\s+/g, "_");
+.login-card button,
+.admin-panel button {
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:16px;
+  background:linear-gradient(135deg,var(--verde-claro),var(--laranja));
+  color:white;
+  font-weight:bold;
+  font-size:17px;
+  cursor:pointer;
 }
 
-function imagemOuEmoji(fig, bloqueada = false) {
-  if (bloqueada) {
-    return "❓";
-  }
-
-  const slug = gerarSlugFoto(fig.nome);
-  const fotoJpg = `img/${slug}_sances.jpg`;
-  const fotoPng = `img/${slug}_sances.png`;
-  const emoji = fig.emoji || "👤";
-
-  return `
-    <img
-      src="${fotoJpg}"
-      alt="${fig.nome}"
-      onerror="
-        if (!this.dataset.tentouPng) {
-          this.dataset.tentouPng = 'true';
-          this.src = '${fotoPng}';
-        } else {
-          this.parentElement.innerHTML = '${emoji}';
-        }
-      "
-    >
-  `;
+.switch-text {
+  margin-top:18px;
+  margin-bottom:0 !important;
+  font-size:14px;
 }
 
-function criarCardFigurinha(fig, bloqueada = false) {
-  return `
-    <div class="card ${classeRaridade(fig)} ${bloqueada ? "locked" : ""}">
-      <div class="photo">${imagemOuEmoji(fig, bloqueada)}</div>
-      <h3>${fig.nome}</h3>
-      <span>${fig.setor}</span>
-      <small class="raridade raridade-${fig.raridade === "normal" ? "incomum" : fig.raridade}">
-        ${textoRaridade(fig)}
-      </small>
-    </div>
-  `;
+.link-btn {
+  width:auto !important;
+  padding:0 !important;
+  background:none !important;
+  color:var(--verde-claro) !important;
+  font-size:14px !important;
+  text-decoration:underline;
 }
 
-function carregarFigurinhasDisponiveis() {
-  const lista = document.getElementById("listaFigurinhas");
-  lista.innerHTML = "";
-
-  const ordemSetores = [
-    "CEO",
-    "Comercial",
-    "Marketing",
-    "Implantação",
-    "RH",
-    "Suporte",
-    "DEV"
-  ];
-
-  const setores = [
-    ...ordemSetores,
-    ...new Set(figurinhas.map(fig => fig.setor).filter(setor => !ordemSetores.includes(setor)))
-  ];
-
-  setores.forEach(setor => {
-    const grupo = figurinhas
-      .filter(fig => fig.setor === setor)
-      .sort((a, b) => {
-        const ordemRaridade = {
-          lendaria: 1,
-          rara: 2,
-          incomum: 3,
-          normal: 3
-        };
-
-        return ordemRaridade[a.raridade] - ordemRaridade[b.raridade];
-      });
-
-    if (grupo.length === 0) return;
-
-    let cards = "";
-
-    grupo.forEach(fig => {
-      cards += criarCardFigurinha(fig);
-    });
-
-    lista.innerHTML += `
-      <div class="setor-bloco">
-        <h3 class="setor-titulo">${setor}</h3>
-        <div class="cards">${cards}</div>
-      </div>
-    `;
-  });
+#erroLoginFuncionario,
+#erroCadastro {
+  display:block;
+  margin-top:14px;
+  color:var(--vermelho);
+  font-weight:bold;
 }
 
-async function carregarAlbumUsuario() {
-  const { data, error } = await db
-    .from("album")
-    .select("*")
-    .eq("usuario_id", usuarioAtualId);
-
-  if (error) {
-    alert("Erro ao carregar álbum.");
-    return;
-  }
-
-  albumUsuario = {};
-
-  data.forEach(item => {
-    const fig = figurinhas.find(f => f.id === item.figurinha_id);
-
-    if (fig) {
-      albumUsuario[item.figurinha_id] = {
-        ...fig,
-        quantidade: item.quantidade
-      };
-    }
-  });
+.app {
+  display:flex;
+  min-height:100vh;
 }
 
-async function atualizarPerfilUsuario() {
-  const { data } = await db
-    .from("profiles")
-    .select("*")
-    .eq("id", usuarioAtualId)
-    .single();
-
-  if (data) {
-    usuarioAtual = data;
-  }
+.sidebar {
+  width:260px;
+  padding:30px 20px;
+  background:rgba(0,0,0,.45);
+  border-right:1px solid rgba(255,255,255,.12);
+  backdrop-filter:blur(10px);
 }
 
-function atualizarContadorPacotes() {
-  document.getElementById("contadorPacotes").textContent = usuarioAtual.pacotes || 0;
-
-  const contadorAbertos = document.getElementById("contadorPacotesAbertos");
-
-  if (contadorAbertos) {
-    contadorAbertos.textContent = usuarioAtual.pacotes_abertos || 0;
-  }
+.logo-box {
+  margin-bottom:25px;
+  text-align:center;
 }
 
-function sortearFigurinhaPorChance() {
-  const soma = figurinhas.reduce((total, fig) => total + fig.chance, 0);
-  let numero = Math.random() * soma;
-
-  for (const fig of figurinhas) {
-    numero -= fig.chance;
-
-    if (numero <= 0) {
-      return fig;
-    }
-  }
-
-  return figurinhas[figurinhas.length - 1];
+.logo-box img {
+  max-width:185px;
+  width:100%;
 }
 
-async function abrirPacote() {
-  if (!usuarioAtual || usuarioAtual.pacotes <= 0) {
-    alert("Você não tem pacotes disponíveis.");
-    return;
-  }
-
-  const novoTotal = usuarioAtual.pacotes - 1;
-  const novoTotalAbertos = (usuarioAtual.pacotes_abertos || 0) + 1;
-
-  const { error } = await db
-    .from("profiles")
-    .update({
-      pacotes: novoTotal,
-      pacotes_abertos: novoTotalAbertos
-    })
-    .eq("id", usuarioAtualId);
-
-  if (error) {
-    alert("Erro ao abrir pacote.");
-    return;
-  }
-
-  usuarioAtual.pacotes = novoTotal;
-  usuarioAtual.pacotes_abertos = novoTotalAbertos;
-
-  atualizarContadorPacotes();
-
-  criarPopupPacote();
-
-  setTimeout(async () => {
-    fecharPopupPacote();
-    await revelarFigurinhas();
-  }, 2800);
+.user-box {
+  padding:16px;
+  border-radius:18px;
+  background:rgba(255,255,255,.08);
+  margin-bottom:25px;
 }
 
-function criarPopupPacote() {
-  const popup = document.createElement("div");
-  popup.classList.add("pack-popup");
-
-  popup.innerHTML = `
-    <div class="pack-modal">
-      <div class="sparkles"></div>
-      <div class="mystery-pack">
-        <div class="pack-top"></div>
-        <div class="pack-body"><span>?</span></div>
-        <div class="pack-bottom"></div>
-      </div>
-      <div class="energy-ring"></div>
-      <div class="cards-shadow"></div>
-    </div>
-  `;
-
-  document.body.appendChild(popup);
+.user-box strong {
+  display:block;
+  margin-bottom:4px;
 }
 
-function fecharPopupPacote() {
-  const popup = document.querySelector(".pack-popup");
-  if (popup) {
-    popup.remove();
-  }
+.user-box span {
+  color:var(--verde-claro);
+  font-size:14px;
 }
 
-async function salvarFigurinhaNoAlbum(fig) {
-  const atual = albumUsuario[fig.id] ? albumUsuario[fig.id].quantidade : 0;
-  const novaQuantidade = atual + 1;
-
-  const { error } = await db.from("album").upsert({
-    usuario_id: usuarioAtualId,
-    figurinha_id: fig.id,
-    quantidade: novaQuantidade
-  });
-
-  if (error) {
-    alert("Erro ao salvar figurinha.");
-    return false;
-  }
-
-  albumUsuario[fig.id] = {
-    ...fig,
-    quantidade: novaQuantidade
-  };
-
-  return true;
+.tab-btn,
+.logout-btn {
+  width:100%;
+  padding:15px;
+  margin-bottom:14px;
+  border:none;
+  border-radius:14px;
+  background:rgba(255,255,255,.08);
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+  transition:.25s;
+  text-align:left;
 }
 
-function montarMensagemFigurinhasEncontradas(figs) {
-  const nomesColoridos = figs.map(fig => {
-    return `<span class="log-card-name ${classeLogRaridade(fig)}">${fig.nome}</span>`;
-  });
-
-  let nomesTexto = "";
-
-  if (nomesColoridos.length === 1) {
-    nomesTexto = nomesColoridos[0];
-  } else if (nomesColoridos.length === 2) {
-    nomesTexto = `${nomesColoridos[0]} e ${nomesColoridos[1]}`;
-  } else {
-    nomesTexto = `${nomesColoridos[0]}, ${nomesColoridos[1]} e ${nomesColoridos[2]}`;
-  }
-
-  return `${usuarioAtual.nome} encontrou ${nomesTexto}.`;
+.tab-btn:hover,
+.tab-btn.active {
+  background:linear-gradient(135deg,var(--verde-sances),var(--verde-claro));
+  transform:translateX(6px);
 }
 
-async function revelarFigurinhas() {
-  const resultado = document.getElementById("resultadoPacote");
-  resultado.innerHTML = "";
-
-  const figurinhasDoPacote = [];
-
-  for (let i = 0; i < 3; i++) {
-    const sorteada = sortearFigurinhaPorChance();
-    const repetida = !!albumUsuario[sorteada.id];
-
-    figurinhasDoPacote.push(sorteada);
-
-    const ok = await salvarFigurinhaNoAlbum(sorteada);
-
-    if (!ok) return;
-
-    resultado.innerHTML += `
-      <div class="card new-card ${classeRaridade(sorteada)}">
-        <div class="photo">${imagemOuEmoji(sorteada, false)}</div>
-        <h3>${sorteada.nome}</h3>
-        <span>${sorteada.setor}</span>
-        <small class="raridade raridade-${sorteada.raridade === "normal" ? "incomum" : sorteada.raridade}">
-          ${textoRaridade(sorteada)}
-        </small>
-        ${repetida ? `<small class="repeat">Repetida</small>` : `<small class="new">Nova figurinha</small>`}
-      </div>
-    `;
-  }
-
-  await registrarLog(
-    "FIGURINHA ENCONTRADA",
-    montarMensagemFigurinhasEncontradas(figurinhasDoPacote)
-  );
-
-  await carregarAlbumUsuario();
-  await atualizarPerfilUsuario();
-
-  atualizarAlbum();
-  atualizarContadorPacotes();
-  await atualizarRanking();
-  await atualizarGerencial();
-  await carregarLogs();
+.logout-btn {
+  background:rgba(201,24,43,.25);
+  margin-top:20px;
 }
 
-function atualizarAlbum() {
-  const albumSection = document.getElementById("album");
-
-  const total = figurinhas.length;
-  const conquistadas = Object.keys(albumUsuario).length;
-  const porcentagem = Math.round((conquistadas / total) * 100);
-
-  let cards = "";
-
-  figurinhas.forEach(fig => {
-    if (albumUsuario[fig.id]) {
-      cards += `
-        <div class="card album-card ${classeRaridade(fig)}">
-          <div class="quantity-badge">${albumUsuario[fig.id].quantidade}</div>
-          <div class="photo">${imagemOuEmoji(fig, false)}</div>
-          <h3>${fig.nome}</h3>
-          <span>${fig.setor}</span>
-          <small class="raridade raridade-${fig.raridade === "normal" ? "incomum" : fig.raridade}">
-            ${textoRaridade(fig)}
-          </small>
-        </div>
-      `;
-    } else {
-      cards += criarCardFigurinha(fig, true);
-    }
-  });
-
-  albumSection.innerHTML = `
-    <h2>Meu Álbum</h2>
-    <p>Veja todas as figurinhas do álbum, incluindo as bloqueadas.</p>
-
-    <div class="progress-box">
-      <h3>Progresso</h3>
-      <div class="progress-bar">
-        <div class="progress" style="width:${porcentagem}%;"></div>
-      </div>
-      <span>${porcentagem}% completo — ${conquistadas}/${total} figurinhas</span>
-    </div>
-
-    <div class="cards album-grid">${cards}</div>
-  `;
+.content {
+  flex:1;
+  padding:45px;
+  overflow-x:hidden;
 }
 
-async function atualizarRanking() {
-  const rankingLista = document.getElementById("rankingLista");
-
-  const { data: usuarios, error: erroUsuarios } = await db.from("profiles").select("*");
-  const { data: albuns, error: erroAlbuns } = await db.from("album").select("*");
-
-  if (erroUsuarios || erroAlbuns) {
-    rankingLista.innerHTML = "<p>Erro ao carregar ranking.</p>";
-    return;
-  }
-
-  const ranking = usuarios.map(usuario => {
-    const album = albuns.filter(item => item.usuario_id === usuario.id);
-    const unicas = album.length;
-    const total = album.reduce((soma, item) => soma + item.quantidade, 0);
-
-    return {
-      ...usuario,
-      unicas,
-      total
-    };
-  }).sort((a, b) => b.unicas - a.unicas || b.total - a.total || b.pacotes_abertos - a.pacotes_abertos);
-
-  rankingLista.innerHTML = "";
-
-  ranking.forEach((pessoa, index) => {
-    rankingLista.innerHTML += `
-      <div>
-        <strong>${index + 1}º</strong>
-        ${pessoa.nome} - ${pessoa.setor}
-        <span>
-          ${pessoa.unicas}/${figurinhas.length} únicas |
-          ${pessoa.total} figurinhas |
-          ${pessoa.pacotes_abertos || 0} pacotes abertos
-        </span>
-      </div>
-    `;
-  });
+.tab {
+  display:none;
+  animation:aparecer .35s ease;
 }
 
-async function atualizarGerencial() {
-  if (!usuarioAtual || !usuarioAtual.admin) return;
-
-  const lista = document.getElementById("listaGerencial");
-
-  const { data: usuarios, error } = await db
-    .from("profiles")
-    .select("*")
-    .order("nome", { ascending: true });
-
-  if (error) {
-    lista.innerHTML = "<p>Erro ao carregar painel gerencial.</p>";
-    return;
-  }
-
-  lista.innerHTML = "";
-
-  usuarios.forEach(usuario => {
-    lista.innerHTML += `
-      <div class="admin-row">
-        <div>
-          <h4>${usuario.nome}</h4>
-          <span>${usuario.setor}</span>
-        </div>
-
-        <div class="admin-count">${usuario.pacotes || 0}</div>
-
-        <div class="admin-actions">
-          <input type="number" id="pacoteInput${usuario.id}" min="1" value="1">
-          <button onclick="adicionarPacotes('${usuario.id}')">+</button>
-          <button onclick="removerPacotes('${usuario.id}')">-</button>
-        </div>
-      </div>
-    `;
-  });
+.tab.active {
+  display:block;
 }
 
-async function adicionarPacotes(idPessoa) {
-  if (!usuarioAtual || !usuarioAtual.admin) return;
-
-  const input = document.getElementById(`pacoteInput${idPessoa}`);
-  const quantidade = Number(input.value);
-
-  if (quantidade <= 0) return;
-
-  const { data: perfil, error } = await db
-    .from("profiles")
-    .select("pacotes")
-    .eq("id", idPessoa)
-    .single();
-
-  if (error) {
-    alert("Erro ao buscar funcionário.");
-    return;
-  }
-
-  const novoTotal = (perfil.pacotes || 0) + quantidade;
-
-  await db
-    .from("profiles")
-    .update({ pacotes: novoTotal })
-    .eq("id", idPessoa);
-
-  const { data: usuarioDestino } = await db
-    .from("profiles")
-    .select("nome")
-    .eq("id", idPessoa)
-    .single();
-
-  await registrarLog(
-    "PACOTE RECEBIDO",
-    `${usuarioDestino.nome} recebeu ${quantidade} pacote(s) de ${usuarioAtual.nome}.`
-  );
-
-  if (idPessoa === usuarioAtualId) {
-    usuarioAtual.pacotes = novoTotal;
-    atualizarContadorPacotes();
-  }
-
-  await atualizarGerencial();
-  await atualizarRanking();
-  await carregarLogs();
+@keyframes aparecer {
+  from { opacity:0; transform:translateY(12px); }
+  to { opacity:1; transform:translateY(0); }
 }
 
-async function removerPacotes(idPessoa) {
-  if (!usuarioAtual || !usuarioAtual.admin) return;
-
-  const input = document.getElementById(`pacoteInput${idPessoa}`);
-  const quantidade = Number(input.value);
-
-  if (quantidade <= 0) return;
-
-  const { data: perfil, error } = await db
-    .from("profiles")
-    .select("pacotes")
-    .eq("id", idPessoa)
-    .single();
-
-  if (error) {
-    alert("Erro ao buscar funcionário.");
-    return;
-  }
-
-  let novoTotal = (perfil.pacotes || 0) - quantidade;
-
-  if (novoTotal < 0) {
-    novoTotal = 0;
-  }
-
-  await db
-    .from("profiles")
-    .update({ pacotes: novoTotal })
-    .eq("id", idPessoa);
-
-  const { data: usuarioDestino } = await db
-    .from("profiles")
-    .select("nome")
-    .eq("id", idPessoa)
-    .single();
-
-  await registrarLog(
-    "PACOTE REMOVIDO",
-    `${usuarioDestino.nome} perdeu ${quantidade} pacote(s) por ação de ${usuarioAtual.nome}.`
-  );
-
-  if (idPessoa === usuarioAtualId) {
-    usuarioAtual.pacotes = novoTotal;
-    atualizarContadorPacotes();
-  }
-
-  await atualizarGerencial();
-  await atualizarRanking();
-  await carregarLogs();
+h2 {
+  font-size:36px;
+  margin-bottom:10px;
 }
 
-async function adicionarFigurinha() {
-  if (!usuarioAtual || !usuarioAtual.admin) return;
-
-  const nome = document.getElementById("novaNome").value.trim();
-  const setor = document.getElementById("novoSetor").value.trim();
-  const raridade = document.getElementById("novaRaridade").value;
-  const emoji = document.getElementById("novoEmoji").value || "👤";
-
-  if (!nome || !setor) {
-    alert("Preencha nome e setor.");
-    return;
-  }
-
-  let chance = 25;
-
-  if (raridade === "rara") {
-    chance = 10;
-  }
-
-  if (raridade === "lendaria") {
-    chance = 3;
-  }
-
-  const { error } = await db.from("stickers").insert({
-    nome,
-    setor,
-    raridade,
-    chance,
-    emoji,
-    admin: false,
-    ativo: true
-  });
-
-  if (error) {
-    alert("Erro ao adicionar figurinha.");
-    return;
-  }
-
-  document.getElementById("novaNome").value = "";
-  document.getElementById("novoSetor").value = "";
-  document.getElementById("novoEmoji").value = "👤";
-
-  await carregarTudoOnline();
+p {
+  color:#ccc;
+  margin-bottom:30px;
 }
 
-async function registrarLog(acao, detalhe = "") {
-  if (!usuarioAtual) return;
-
-  await db.from("logs").insert({
-    usuario_nome: usuarioAtual.nome,
-    acao,
-    detalhe
-  });
+.setor-bloco {
+  margin-bottom:42px;
 }
 
-async function carregarLogs() {
-  const lista = document.getElementById("listaLogs");
-
-  if (!lista) return;
-
-  const { data, error } = await db
-    .from("logs")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(150);
-
-  if (error) {
-    lista.innerHTML = "<p>Erro ao carregar transparência.</p>";
-    return;
-  }
-
-  lista.innerHTML = "";
-
-  data.forEach(log => {
-    const dataFormatada = new Date(log.created_at).toLocaleString("pt-BR");
-
-    lista.innerHTML += `
-      <div class="log-item">
-        <strong class="log-user">${log.usuario_nome}</strong>
-        <span class="log-action">${log.acao}</span>
-        <p class="log-detail">${log.detalhe || ""}</p>
-        <small>${dataFormatada}</small>
-      </div>
-    `;
-  });
+.setor-titulo {
+  font-size:24px;
+  margin-bottom:18px;
+  color:var(--laranja);
+  border-left:5px solid var(--verde-claro);
+  padding-left:12px;
 }
 
-async function carregarTudoOnline() {
-  await carregarFigurinhasBanco();
-  carregarFigurinhasDisponiveis();
-  await carregarAlbumUsuario();
-  await atualizarPerfilUsuario();
-
-  atualizarAlbum();
-  atualizarContadorPacotes();
-  await atualizarRanking();
-  await atualizarGerencial();
-  await carregarLogs();
+.cards {
+  display:flex;
+  gap:22px;
+  flex-wrap:wrap;
 }
 
-async function verificarSessaoAtiva() {
-  await carregarFigurinhasBanco();
-
-  const { data } = await db.auth.getSession();
-
-  if (data.session && data.session.user) {
-    await carregarPerfil(data.session.user.id);
-  }
+.card {
+  width:190px;
+  min-height:240px;
+  padding:22px;
+  border-radius:22px;
+  background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.05));
+  text-align:center;
+  transition:.25s;
+  position:relative;
+  border:2px solid rgba(255,255,255,.15);
 }
 
-verificarSessaoAtiva();
+.card:hover {
+  transform:translateY(-8px) scale(1.03);
+}
+
+.card-incomum,
+.card-normal {
+  border-color:var(--verde-claro);
+  box-shadow:0 0 18px rgba(0,170,152,.38);
+}
+
+.card-rara {
+  border-color:var(--roxo-head);
+  box-shadow:0 0 18px rgba(139,92,246,.42);
+}
+
+.card-lendaria {
+  border-color:var(--dourado);
+  box-shadow:0 0 25px rgba(255,211,77,.55);
+}
+
+.photo {
+  width:95px;
+  height:95px;
+  margin:0 auto 15px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--verde-claro),var(--laranja));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:42px;
+  overflow:hidden;
+}
+
+.photo img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  border-radius:50%;
+  display:block;
+}
+
+.card h3 {
+  margin-bottom:6px;
+}
+
+.card span {
+  color:var(--verde-claro);
+  font-size:14px;
+  display:block;
+  margin-bottom:8px;
+}
+
+.raridade {
+  display:block;
+  width:fit-content;
+  margin:10px auto 0;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.raridade-incomum,
+.raridade-normal {
+  background:rgba(0,170,152,.18);
+  color:var(--verde-claro);
+}
+
+.raridade-rara {
+  background:rgba(139,92,246,.2);
+  color:var(--roxo-head);
+}
+
+.raridade-lendaria {
+  background:rgba(255,211,77,.18);
+  color:var(--dourado);
+}
+
+.pack-stats {
+  display:flex;
+  gap:22px;
+  flex-wrap:wrap;
+  margin-bottom:24px;
+}
+
+.pack-info {
+  width:230px;
+  padding:22px;
+  margin-bottom:24px;
+  border-radius:22px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+}
+
+.pack-info h3 {
+  margin-bottom:10px;
+  color:var(--verde-claro);
+}
+
+.pack-info strong {
+  font-size:42px;
+  color:var(--laranja);
+}
+
+.open-pack {
+  padding:18px 35px;
+  border:none;
+  border-radius:18px;
+  background:linear-gradient(135deg,var(--verde-claro),var(--laranja));
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.pack-result {
+  margin-top:30px;
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+.progress-box {
+  max-width:520px;
+  padding:25px;
+  border-radius:22px;
+  background:rgba(255,255,255,.08);
+  margin-bottom:45px;
+}
+
+.progress-bar {
+  width:100%;
+  height:18px;
+  background:rgba(255,255,255,.15);
+  border-radius:30px;
+  margin:18px 0;
+  overflow:hidden;
+}
+
+.progress {
+  height:100%;
+  background:linear-gradient(90deg,var(--verde-claro),var(--laranja));
+}
+
+.album-grid {
+  margin-top:45px;
+}
+
+.quantity-badge {
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--laranja),var(--verde-claro));
+  color:white;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.locked {
+  opacity:.35;
+  filter:grayscale(1);
+}
+
+.locked .photo {
+  background:linear-gradient(135deg,#555,#222);
+}
+
+.new-card {
+  animation:revealCard .5s ease forwards;
+}
+
+@keyframes revealCard {
+  from { opacity:0; transform:scale(.4) rotateY(90deg); }
+  to { opacity:1; transform:scale(1) rotateY(0); }
+}
+
+.new {
+  display:block;
+  margin-top:10px;
+  color:#52ff7a;
+  font-weight:bold;
+}
+
+.repeat {
+  display:block;
+  margin-top:10px;
+  color:var(--laranja);
+  font-weight:bold;
+}
+
+.ranking-list {
+  max-width:860px;
+}
+
+.ranking-list div {
+  background:rgba(255,255,255,.08);
+  padding:18px;
+  margin-bottom:14px;
+  border-radius:16px;
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.ranking-list strong {
+  color:var(--verde-claro);
+}
+
+.ranking-list span {
+  color:var(--laranja);
+}
+
+.logs-list {
+  max-width:850px;
+}
+
+.log-item {
+  padding:18px;
+  margin-bottom:14px;
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+}
+
+.log-user {
+  color:var(--verde-claro);
+  display:block;
+  margin-bottom:6px;
+}
+
+.log-action {
+  color:var(--laranja);
+  font-weight:bold;
+  display:block;
+  margin-bottom:8px;
+}
+
+.log-detail {
+  margin:8px 0;
+  color:#ddd;
+  line-height:1.5;
+}
+
+.log-card-name {
+  font-weight:bold;
+  display:inline !important;
+}
+
+.log-raridade-incomum {
+  color:var(--verde-claro) !important;
+}
+
+.log-raridade-rara {
+  color:var(--roxo-head) !important;
+}
+
+.log-raridade-lendaria {
+  color:var(--dourado) !important;
+}
+
+.log-item small {
+  color:#aaa;
+}
+
+.admin-panel {
+  max-width:820px;
+  padding:25px;
+  border-radius:22px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  margin-bottom:30px;
+}
+
+.admin-row {
+  padding:18px;
+  margin-bottom:14px;
+  border-radius:18px;
+  background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.1);
+  display:grid;
+  grid-template-columns:1fr 120px 230px;
+  gap:15px;
+  align-items:center;
+}
+
+.admin-row span {
+  color:var(--verde-claro);
+  font-size:14px;
+}
+
+.admin-count {
+  color:var(--laranja);
+  font-size:24px;
+  font-weight:bold;
+  text-align:center;
+}
+
+.admin-actions {
+  display:flex;
+  gap:8px;
+}
+
+.admin-actions input {
+  width:75px;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  background:rgba(255,255,255,.12);
+  color:white;
+}
+
+.admin-actions button {
+  padding:13px 20px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--verde-claro),var(--laranja));
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.pack-popup {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(10px);
+  z-index:999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.pack-modal {
+  width:420px;
+  height:420px;
+  border-radius:32px;
+  background:radial-gradient(circle,#083738,#061112 70%);
+  border:1px solid rgba(0,170,152,.45);
+  box-shadow:0 0 80px rgba(0,170,152,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+
+.mystery-pack {
+  width:150px;
+  height:210px;
+  z-index:3;
+  animation:packShake .45s infinite, packOpen 2.8s forwards;
+}
+
+.pack-body {
+  width:100%;
+  height:160px;
+  background:linear-gradient(135deg,#081314,#073536);
+  border:2px solid var(--verde-claro);
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.pack-body span {
+  font-size:76px;
+  color:var(--laranja);
+  font-weight:bold;
+}
+
+.pack-top,
+.pack-bottom {
+  width:100%;
+  height:28px;
+  background:linear-gradient(90deg,var(--verde-claro),var(--laranja));
+  border-radius:10px;
+}
+
+.energy-ring {
+  position:absolute;
+  width:270px;
+  height:270px;
+  border-radius:50%;
+  border:4px solid rgba(0,170,152,.8);
+  animation:ringSpin 1.1s linear infinite;
+}
+
+.sparkles {
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(circle,var(--verde-claro) 2px,transparent 3px),
+    radial-gradient(circle,#fff 1px,transparent 2px),
+    radial-gradient(circle,var(--laranja) 2px,transparent 3px);
+  background-size:80px 80px,110px 110px,140px 140px;
+  animation:sparkleMove 1.4s linear infinite;
+  opacity:.8;
+}
+
+.cards-shadow {
+  position:absolute;
+  bottom:45px;
+  width:190px;
+  height:26px;
+  background:rgba(0,170,152,.45);
+  filter:blur(18px);
+  border-radius:50%;
+  animation:glowPulse .8s infinite alternate;
+}
+
+@keyframes packShake {
+  0% { transform:rotate(0) scale(1); }
+  25% { transform:rotate(-5deg) scale(1.03); }
+  50% { transform:rotate(5deg) scale(1.05); }
+  75% { transform:rotate(-3deg) scale(1.03); }
+  100% { transform:rotate(0) scale(1); }
+}
+
+@keyframes packOpen {
+  0% { opacity:1; }
+  70% { transform:scale(1.15); opacity:1; }
+  100% { transform:scale(2.2); opacity:0; }
+}
+
+@keyframes ringSpin {
+  from { transform:rotate(0) scale(1); }
+  to { transform:rotate(360deg) scale(1.08); }
+}
+
+@keyframes sparkleMove {
+  from { background-position:0 0,0 0,0 0; }
+  to { background-position:80px 80px,-110px 110px,140px -140px; }
+}
+
+@keyframes glowPulse {
+  from { opacity:.35; transform:scale(1); }
+  to { opacity:.9; transform:scale(1.25); }
+}
