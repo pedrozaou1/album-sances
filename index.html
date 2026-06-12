@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Álbum Digital Sances</title>
+  <link rel="icon" type="image/png" href="img/principal.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -33,6 +34,7 @@
       <p>Cadastre seu acesso ao álbum digital.</p>
 
       <input id="cadastroNome" type="text" placeholder="Nome completo">
+
       <select id="cadastroSetor">
         <option value="">Selecione seu setor</option>
         <option value="CEO">CEO</option>
@@ -43,6 +45,7 @@
         <option value="DEV">DEV</option>
         <option value="RH">RH</option>
       </select>
+
       <input id="cadastroLogin" type="text" placeholder="Crie seu usuário">
       <input id="cadastroSenha" type="password" placeholder="Crie sua senha">
 
@@ -73,6 +76,7 @@
     <button class="tab-btn" data-tab="pacotes">Pacotes</button>
     <button class="tab-btn" data-tab="album">Meu Álbum</button>
     <button class="tab-btn" data-tab="ranking">Ranking</button>
+    <button class="tab-btn" data-tab="transparencia">Transparência</button>
     <button id="btnGerencial" class="tab-btn hidden" data-tab="gerencial">Gerencial</button>
 
     <button class="logout-btn" onclick="sair()">Sair</button>
@@ -86,25 +90,25 @@
       <div id="listaFigurinhas"></div>
     </section>
 
- <section id="pacotes" class="tab">
-  <h2>Pacotes</h2>
-  <p>Abra pacotes surpresa e descubra novas figurinhas.</p>
+    <section id="pacotes" class="tab">
+      <h2>Pacotes</h2>
+      <p>Abra pacotes surpresa e descubra novas figurinhas.</p>
 
-  <div class="pack-stats">
-    <div class="pack-info">
-      <h3>PACOTES DISPONÍVEIS</h3>
-      <strong id="contadorPacotes">0</strong>
-    </div>
+      <div class="pack-stats">
+        <div class="pack-info">
+          <h3>PACOTES DISPONÍVEIS</h3>
+          <strong id="contadorPacotes">0</strong>
+        </div>
 
-    <div class="pack-info">
-      <h3>PACOTES ABERTOS</h3>
-      <strong id="contadorPacotesAbertos">0</strong>
-    </div>
-  </div>
+        <div class="pack-info">
+          <h3>PACOTES ABERTOS</h3>
+          <strong id="contadorPacotesAbertos">0</strong>
+        </div>
+      </div>
 
-  <button class="open-pack" onclick="abrirPacote()">Abrir pacote 🎁</button>
-  <div id="resultadoPacote" class="pack-result"></div>
-</section>
+      <button class="open-pack" onclick="abrirPacote()">Abrir pacote 🎁</button>
+      <div id="resultadoPacote" class="pack-result"></div>
+    </section>
 
     <section id="album" class="tab"></section>
 
@@ -112,6 +116,12 @@
       <h2>Ranking</h2>
       <p>Quem está mais perto de completar o álbum.</p>
       <div id="rankingLista" class="ranking-list"></div>
+    </section>
+
+    <section id="transparencia" class="tab">
+      <h2>Portal da Transparência</h2>
+      <p>Registro público de pacotes recebidos, removidos e figurinhas encontradas.</p>
+      <div id="listaLogs" class="logs-list"></div>
     </section>
 
     <section id="gerencial" class="tab">
@@ -130,9 +140,9 @@
         <input id="novoSetor" placeholder="Setor">
 
         <select id="novaRaridade">
-          <option value="normal">Normal - 25%</option>
+          <option value="incomum">Incomum - 25%</option>
           <option value="rara">Head - 10%</option>
-          <option value="lendaria">CEO - 5%</option>
+          <option value="lendaria">CEO - 3%</option>
         </select>
 
         <input id="novoEmoji" placeholder="Emoji" value="👤">
