@@ -323,6 +323,12 @@ async function atualizarPerfilUsuario() {
 
 function atualizarContadorPacotes() {
   document.getElementById("contadorPacotes").textContent = usuarioAtual.pacotes || 0;
+
+  const contadorAbertos = document.getElementById("contadorPacotesAbertos");
+
+  if (contadorAbertos) {
+    contadorAbertos.textContent = usuarioAtual.pacotes_abertos || 0;
+  }
 }
 
 function sortearFigurinhaPorChance() {
