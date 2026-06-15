@@ -98,16 +98,16 @@ async function cadastrarFuncionario() {
     return;
   }
 
-  const { error: profileError } = await db.from("profiles").insert({
-    id: data.user.id,
-    sticker_id: null,
-    nome,
-    login,
-    setor,
-    admin: false,
-    pacotes: 1,
-    pacotes_abertos: 0
-  });
+const { error: profileError } = await db.from("profiles").insert({
+  id: data.user.id,
+  sticker_id: null,
+  nome,
+  login,
+  setor,
+  admin: false,
+  pacotes: 1,
+  pacotes_abertos: 0
+});
 
   if (profileError) {
     erro.textContent = "Erro ao criar perfil: " + profileError.message;
