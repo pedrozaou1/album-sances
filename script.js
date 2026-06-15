@@ -283,7 +283,7 @@ function carregarFigurinhasDisponiveis() {
     "Comercial",
     "Marketing",
     "Implantação",
-    "RH",
+    "ADM",
     "Suporte",
     "DEV"
   ];
