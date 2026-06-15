@@ -219,8 +219,8 @@ function classeLogRaridade(fig) {
 
 function textoRaridade(fig) {
   if (fig.raridade === "incomum" || fig.raridade === "normal") return `Incomum • ${fig.chance}%`;
-  if (fig.raridade === "rara") return `Head • ${fig.chance}%`;
-  if (fig.raridade === "lendaria") return `CEO • ${fig.chance}%`;
+  if (fig.raridade === "rara") return `Épica • ${fig.chance}%`;
+  if (fig.raridade === "lendaria") return `Lendária • ${fig.chance}%`;
 }
 
 function gerarSlugFoto(nome) {
