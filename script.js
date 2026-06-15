@@ -835,9 +835,9 @@ async function carregarLogs() {
   lista.innerHTML = "";
 
   data.forEach(log => {
-const dataFormatada = new Date(log.created_at).toLocaleString("pt-BR", {
-  timeZone: "America/Sao_Paulo"
-});
+const data = new Date(log.created_at);
+data.setHours(data.getHours() - 3);
+const dataFormatada = data.toLocaleString("pt-BR");
 
     lista.innerHTML += `
       <div class="log-item">
