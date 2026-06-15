@@ -40,9 +40,12 @@ function mostrarLogin() {
   document.getElementById("areaLogin").classList.remove("hidden");
 }
 
-async function obterTokenSessao() {
-  const { data } = await db.auth.getSession();
-  return data.session?.access_token || null;
+function limparTexto(texto) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 async function cadastrarFuncionario() {
@@ -61,6 +64,14 @@ async function cadastrarFuncionario() {
 
   if (senha.length < 6) {
     erro.textContent = "A senha precisa ter pelo menos 6 caracteres.";
+    return;
+  }
+
+  const nomesReservados = ["pedro", "jana", "janaina"];
+  const loginsReservados = ["pedro", "jana", "janaina"];
+
+  if (nomesReservados.includes(limparTexto(nome)) || loginsReservados.includes(limparTexto(login))) {
+    erro.textContent = "Esse nome ou usuário é reservado. Fale com o administrador.";
     return;
   }
 
@@ -163,7 +174,7 @@ async function carregarPerfil(idUsuario) {
   document.getElementById("nomeUsuarioLogado").textContent = data.nome;
   document.getElementById("setorUsuarioLogado").textContent = data.setor;
 
-  if (data.admin) {
+  if (data.admin === true) {
     document.getElementById("btnGerencial").classList.remove("hidden");
   } else {
     document.getElementById("btnGerencial").classList.add("hidden");
@@ -199,6 +210,13 @@ function classeRaridade(fig) {
   if (fig.raridade === "lendaria") return "card-lendaria";
 }
 
+function classeLogRaridade(fig) {
+  if (fig.raridade === "incomum" || fig.raridade === "normal") return "log-raridade-incomum";
+  if (fig.raridade === "rara") return "log-raridade-rara";
+  if (fig.raridade === "lendaria") return "log-raridade-lendaria";
+  return "log-raridade-incomum";
+}
+
 function textoRaridade(fig) {
   if (fig.raridade === "incomum" || fig.raridade === "normal") return `Incomum • ${fig.chance}%`;
   if (fig.raridade === "rara") return `Head • ${fig.chance}%`;
@@ -217,7 +235,9 @@ function gerarSlugFoto(nome) {
 }
 
 function imagemOuEmoji(fig, bloqueada = false) {
-  if (bloqueada) return "❓";
+  if (bloqueada) {
+    return "❓";
+  }
 
   const slug = gerarSlugFoto(fig.nome);
   const fotoJpg = `img/${slug}_sances.jpg`;
@@ -258,7 +278,15 @@ function carregarFigurinhasDisponiveis() {
   const lista = document.getElementById("listaFigurinhas");
   lista.innerHTML = "";
 
-  const ordemSetores = ["CEO", "Comercial", "Marketing", "Implantação", "RH", "Suporte", "DEV"];
+  const ordemSetores = [
+    "CEO",
+    "Comercial",
+    "Marketing",
+    "Implantação",
+    "RH",
+    "Suporte",
+    "DEV"
+  ];
 
   const setores = [
     ...ordemSetores,
@@ -269,7 +297,13 @@ function carregarFigurinhasDisponiveis() {
     const grupo = figurinhas
       .filter(fig => fig.setor === setor)
       .sort((a, b) => {
-        const ordemRaridade = { lendaria: 1, rara: 2, incomum: 3, normal: 3 };
+        const ordemRaridade = {
+          lendaria: 1,
+          rara: 2,
+          incomum: 3,
+          normal: 3
+        };
+
         return ordemRaridade[a.raridade] - ordemRaridade[b.raridade];
       });
 
@@ -322,7 +356,9 @@ async function atualizarPerfilUsuario() {
     .eq("id", usuarioAtualId)
     .single();
 
-  if (data) usuarioAtual = data;
+  if (data) {
+    usuarioAtual = data;
+  }
 }
 
 function atualizarContadorPacotes() {
@@ -335,55 +371,53 @@ function atualizarContadorPacotes() {
   }
 }
 
+function sortearFigurinhaPorChance() {
+  const soma = figurinhas.reduce((total, fig) => total + fig.chance, 0);
+  let numero = Math.random() * soma;
+
+  for (const fig of figurinhas) {
+    numero -= fig.chance;
+
+    if (numero <= 0) {
+      return fig;
+    }
+  }
+
+  return figurinhas[figurinhas.length - 1];
+}
+
 async function abrirPacote() {
   if (!usuarioAtual || usuarioAtual.pacotes <= 0) {
     alert("Você não tem pacotes disponíveis.");
     return;
   }
 
+  const novoTotal = usuarioAtual.pacotes - 1;
+  const novoTotalAbertos = (usuarioAtual.pacotes_abertos || 0) + 1;
+
+  const { error } = await db
+    .from("profiles")
+    .update({
+      pacotes: novoTotal,
+      pacotes_abertos: novoTotalAbertos
+    })
+    .eq("id", usuarioAtualId);
+
+  if (error) {
+    alert("Erro ao abrir pacote.");
+    return;
+  }
+
+  usuarioAtual.pacotes = novoTotal;
+  usuarioAtual.pacotes_abertos = novoTotalAbertos;
+
+  atualizarContadorPacotes();
+
   criarPopupPacote();
 
   setTimeout(async () => {
     fecharPopupPacote();
-
-    const token = await obterTokenSessao();
-
-    const resposta = await fetch(`${SUPABASE_URL}/functions/v1/abrir-pacote`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
-    });
-
-    const json = await resposta.json();
-
-    if (!resposta.ok) {
-      alert(json.error || "Erro ao abrir pacote.");
-      return;
-    }
-
-    usuarioAtual.pacotes = json.pacotes;
-    usuarioAtual.pacotes_abertos = json.pacotes_abertos;
-
-    const resultado = document.getElementById("resultadoPacote");
-    resultado.innerHTML = "";
-
-    json.figurinhas.forEach(sorteada => {
-      resultado.innerHTML += `
-        <div class="card new-card ${classeRaridade(sorteada)}">
-          <div class="photo">${imagemOuEmoji(sorteada, false)}</div>
-          <h3>${sorteada.nome}</h3>
-          <span>${sorteada.setor}</span>
-          <small class="raridade raridade-${sorteada.raridade === "normal" ? "incomum" : sorteada.raridade}">
-            ${textoRaridade(sorteada)}
-          </small>
-          ${sorteada.repetida ? `<small class="repeat">Repetida</small>` : `<small class="new">Nova figurinha</small>`}
-        </div>
-      `;
-    });
-
-    await carregarTudoOnline();
+    await revelarFigurinhas();
   }, 2800);
 }
 
@@ -409,7 +443,94 @@ function criarPopupPacote() {
 
 function fecharPopupPacote() {
   const popup = document.querySelector(".pack-popup");
-  if (popup) popup.remove();
+  if (popup) {
+    popup.remove();
+  }
+}
+
+async function salvarFigurinhaNoAlbum(fig) {
+  const atual = albumUsuario[fig.id] ? albumUsuario[fig.id].quantidade : 0;
+  const novaQuantidade = atual + 1;
+
+  const { error } = await db.from("album").upsert({
+    usuario_id: usuarioAtualId,
+    figurinha_id: fig.id,
+    quantidade: novaQuantidade
+  });
+
+  if (error) {
+    alert("Erro ao salvar figurinha.");
+    return false;
+  }
+
+  albumUsuario[fig.id] = {
+    ...fig,
+    quantidade: novaQuantidade
+  };
+
+  return true;
+}
+
+function montarMensagemFigurinhasEncontradas(figs) {
+  const nomesColoridos = figs.map(fig => {
+    return `<span class="log-card-name ${classeLogRaridade(fig)}">${fig.nome}</span>`;
+  });
+
+  let nomesTexto = "";
+
+  if (nomesColoridos.length === 1) {
+    nomesTexto = nomesColoridos[0];
+  } else if (nomesColoridos.length === 2) {
+    nomesTexto = `${nomesColoridos[0]} e ${nomesColoridos[1]}`;
+  } else {
+    nomesTexto = `${nomesColoridos[0]}, ${nomesColoridos[1]} e ${nomesColoridos[2]}`;
+  }
+
+  return `${usuarioAtual.nome} encontrou ${nomesTexto}.`;
+}
+
+async function revelarFigurinhas() {
+  const resultado = document.getElementById("resultadoPacote");
+  resultado.innerHTML = "";
+
+  const figurinhasDoPacote = [];
+
+  for (let i = 0; i < 3; i++) {
+    const sorteada = sortearFigurinhaPorChance();
+    const repetida = !!albumUsuario[sorteada.id];
+
+    figurinhasDoPacote.push(sorteada);
+
+    const ok = await salvarFigurinhaNoAlbum(sorteada);
+
+    if (!ok) return;
+
+    resultado.innerHTML += `
+      <div class="card new-card ${classeRaridade(sorteada)}">
+        <div class="photo">${imagemOuEmoji(sorteada, false)}</div>
+        <h3>${sorteada.nome}</h3>
+        <span>${sorteada.setor}</span>
+        <small class="raridade raridade-${sorteada.raridade === "normal" ? "incomum" : sorteada.raridade}">
+          ${textoRaridade(sorteada)}
+        </small>
+        ${repetida ? `<small class="repeat">Repetida</small>` : `<small class="new">Nova figurinha</small>`}
+      </div>
+    `;
+  }
+
+  await registrarLog(
+    "FIGURINHA ENCONTRADA",
+    montarMensagemFigurinhasEncontradas(figurinhasDoPacote)
+  );
+
+  await carregarAlbumUsuario();
+  await atualizarPerfilUsuario();
+
+  atualizarAlbum();
+  atualizarContadorPacotes();
+  await atualizarRanking();
+  await atualizarGerencial();
+  await carregarLogs();
 }
 
 function atualizarAlbum() {
@@ -458,15 +579,24 @@ function atualizarAlbum() {
 async function atualizarRanking() {
   const rankingLista = document.getElementById("rankingLista");
 
-  const { data: usuarios } = await db.from("profiles").select("*");
-  const { data: albuns } = await db.from("album").select("*");
+  const { data: usuarios, error: erroUsuarios } = await db.from("profiles").select("*");
+  const { data: albuns, error: erroAlbuns } = await db.from("album").select("*");
+
+  if (erroUsuarios || erroAlbuns) {
+    rankingLista.innerHTML = "<p>Erro ao carregar ranking.</p>";
+    return;
+  }
 
   const ranking = usuarios.map(usuario => {
     const album = albuns.filter(item => item.usuario_id === usuario.id);
     const unicas = album.length;
     const total = album.reduce((soma, item) => soma + item.quantidade, 0);
 
-    return { ...usuario, unicas, total };
+    return {
+      ...usuario,
+      unicas,
+      total
+    };
   }).sort((a, b) => b.unicas - a.unicas || b.total - a.total || b.pacotes_abertos - a.pacotes_abertos);
 
   rankingLista.innerHTML = "";
@@ -523,43 +653,51 @@ async function atualizarGerencial() {
   });
 }
 
-async function executarAdminAcao(payload) {
-  const token = await obterTokenSessao();
-
-  const resposta = await fetch(`${SUPABASE_URL}/functions/v1/admin-acoes`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const json = await resposta.json();
-
-  if (!resposta.ok) {
-    alert(json.error || "Erro na ação administrativa.");
-    return null;
-  }
-
-  return json;
-}
-
 async function adicionarPacotes(idPessoa) {
   if (!usuarioAtual || !usuarioAtual.admin) return;
 
   const input = document.getElementById(`pacoteInput${idPessoa}`);
   const quantidade = Number(input.value);
 
-  const resposta = await executarAdminAcao({
-    tipo: "adicionarPacotes",
-    idPessoa,
-    quantidade
-  });
+  if (quantidade <= 0) return;
 
-  if (!resposta) return;
+  const { data: perfil, error } = await db
+    .from("profiles")
+    .select("pacotes")
+    .eq("id", idPessoa)
+    .single();
 
-  await carregarTudoOnline();
+  if (error) {
+    alert("Erro ao buscar funcionário.");
+    return;
+  }
+
+  const novoTotal = (perfil.pacotes || 0) + quantidade;
+
+  await db
+    .from("profiles")
+    .update({ pacotes: novoTotal })
+    .eq("id", idPessoa);
+
+  const { data: usuarioDestino } = await db
+    .from("profiles")
+    .select("nome")
+    .eq("id", idPessoa)
+    .single();
+
+  await registrarLog(
+    "PACOTE RECEBIDO",
+    `${usuarioDestino.nome} recebeu ${quantidade} pacote(s) de ${usuarioAtual.nome}.`
+  );
+
+  if (idPessoa === usuarioAtualId) {
+    usuarioAtual.pacotes = novoTotal;
+    atualizarContadorPacotes();
+  }
+
+  await atualizarGerencial();
+  await atualizarRanking();
+  await carregarLogs();
 }
 
 async function removerPacotes(idPessoa) {
@@ -568,15 +706,49 @@ async function removerPacotes(idPessoa) {
   const input = document.getElementById(`pacoteInput${idPessoa}`);
   const quantidade = Number(input.value);
 
-  const resposta = await executarAdminAcao({
-    tipo: "removerPacotes",
-    idPessoa,
-    quantidade
-  });
+  if (quantidade <= 0) return;
 
-  if (!resposta) return;
+  const { data: perfil, error } = await db
+    .from("profiles")
+    .select("pacotes")
+    .eq("id", idPessoa)
+    .single();
 
-  await carregarTudoOnline();
+  if (error) {
+    alert("Erro ao buscar funcionário.");
+    return;
+  }
+
+  let novoTotal = (perfil.pacotes || 0) - quantidade;
+
+  if (novoTotal < 0) {
+    novoTotal = 0;
+  }
+
+  await db
+    .from("profiles")
+    .update({ pacotes: novoTotal })
+    .eq("id", idPessoa);
+
+  const { data: usuarioDestino } = await db
+    .from("profiles")
+    .select("nome")
+    .eq("id", idPessoa)
+    .single();
+
+  await registrarLog(
+    "PACOTE REMOVIDO",
+    `${usuarioDestino.nome} perdeu ${quantidade} pacote(s) por ação de ${usuarioAtual.nome}.`
+  );
+
+  if (idPessoa === usuarioAtualId) {
+    usuarioAtual.pacotes = novoTotal;
+    atualizarContadorPacotes();
+  }
+
+  await atualizarGerencial();
+  await atualizarRanking();
+  await carregarLogs();
 }
 
 async function adicionarFigurinha() {
@@ -587,15 +759,35 @@ async function adicionarFigurinha() {
   const raridade = document.getElementById("novaRaridade").value;
   const emoji = document.getElementById("novoEmoji").value || "👤";
 
-  const resposta = await executarAdminAcao({
-    tipo: "adicionarFigurinha",
+  if (!nome || !setor) {
+    alert("Preencha nome e setor.");
+    return;
+  }
+
+  let chance = 25;
+
+  if (raridade === "rara") {
+    chance = 10;
+  }
+
+  if (raridade === "lendaria") {
+    chance = 3;
+  }
+
+  const { error } = await db.from("stickers").insert({
     nome,
     setor,
     raridade,
-    emoji
+    chance,
+    emoji,
+    admin: false,
+    ativo: true
   });
 
-  if (!resposta) return;
+  if (error) {
+    alert("Erro ao adicionar figurinha.");
+    return;
+  }
 
   document.getElementById("novaNome").value = "";
   document.getElementById("novoSetor").value = "";
@@ -604,8 +796,19 @@ async function adicionarFigurinha() {
   await carregarTudoOnline();
 }
 
+async function registrarLog(acao, detalhe = "") {
+  if (!usuarioAtual) return;
+
+  await db.from("logs").insert({
+    usuario_nome: usuarioAtual.nome,
+    acao,
+    detalhe
+  });
+}
+
 async function carregarLogs() {
   const lista = document.getElementById("listaLogs");
+
   if (!lista) return;
 
   const { data, error } = await db
