@@ -67,13 +67,13 @@ async function cadastrarFuncionario() {
     return;
   }
 
-  const nomesReservados = ["pedro", "jana", "janaina"];
-  const loginsReservados = ["pedro", "jana", "janaina"];
+//  const nomesReservados = ["pedro", "jana", "janaina"];
+//  const loginsReservados = ["pedro", "jana", "janaina"];
 
-  if (nomesReservados.includes(limparTexto(nome)) || loginsReservados.includes(limparTexto(login))) {
-    erro.textContent = "Esse nome ou usuário é reservado. Fale com o administrador.";
-    return;
-  }
+  //if (nomesReservados.includes(limparTexto(nome)) || loginsReservados.includes(limparTexto(login))) {
+  //  erro.textContent = "Esse nome ou usuário é reservado. Fale com o administrador.";
+  //  return;
+ // }
 
   const { data: perfilComLogin } = await db
     .from("profiles")
