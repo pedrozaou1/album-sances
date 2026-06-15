@@ -1,15 +1,15 @@
 :root {
-  --verde-sances:#008c8c;
-  --verde-claro:#00aa98;
-  --roxo-head:#8b5cf6;
+  --verde-sances:#33333c;
+  --verde-claro:#252a98;
+  --roxo-head:#fffff6;
   --laranja:#ff8f1c;
-  --dourado:#ffd34d;
-  --vermelho:#c9182b;
+  --dourado:#fffa;
+  --vermelho:#ddddd;
 }
 
 * {
-  margin:0;
-  padding:0;
+  margin:16;
+  padding:2;
   box-sizing:border-box;
   font-family:Arial, Helvetica, sans-serif;
 }
