@@ -105,7 +105,7 @@ async function cadastrarFuncionario() {
     login,
     setor,
     admin: false,
-    pacotes: 0,
+    pacotes: 1,
     pacotes_abertos: 0
   });
 
