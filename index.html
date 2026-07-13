@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Álbum Digital Sances</title>
+  <link rel="icon" type="image/png" href="img/principal.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<button id="btnMenuMobile" class="mobile-menu-btn hidden" type="button" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+<div id="menuBackdrop" class="menu-backdrop hidden" onclick="fecharMenuMobile()"></div>
+
+<section id="telaLogin" class="login-screen">
+  <div class="login-card">
+    <img src="img/principal.png" class="login-logo" alt="Sances">
+
+    <div id="areaLogin">
+      <h1>Álbum Digital</h1>
+      <p>Acesse seu álbum de figurinhas da Sances.</p>
+
+      <input id="loginFuncionario" type="text" placeholder="Usuário">
+      <input id="senhaFuncionario" type="password" placeholder="Senha">
+
+      <button onclick="fazerLoginFuncionario()">Entrar</button>
+      <small id="erroLoginFuncionario"></small>
+
+      <p class="switch-text">
+        Ainda não tem conta?
+        <button class="link-btn" onclick="mostrarCadastro()">Criar cadastro</button>
+      </p>
+    </div>
+
+    <div id="areaCadastro" class="hidden">
+      <h1>Criar conta</h1>
+      <p>Cadastre seu acesso ao álbum digital.</p>
+
+      <input id="cadastroNome" type="text" placeholder="Nome completo">
+
+      <select id="cadastroSetor">
+        <option value="">Selecione seu setor</option>
+        <option value="CEO">CEO</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Implantação">Implantação</option>
+        <option value="Suporte">Suporte</option>
+        <option value="DEV">DEV</option>
+        <option value="ADM">ADM</option>
+      </select>
+
+      <input id="cadastroLogin" type="text" placeholder="Crie seu usuário">
+      <input id="cadastroSenha" type="password" placeholder="Crie sua senha">
+
+      <button onclick="cadastrarFuncionario()">Cadastrar</button>
+      <small id="erroCadastro"></small>
+
+      <p class="switch-text">
+        Já tem conta?
+        <button class="link-btn" onclick="mostrarLogin()">Fazer login</button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<div id="appPrincipal" class="app hidden">
+
+  <aside class="sidebar">
+    <div class="logo-box">
+      <img src="img/principal.png" alt="Sances">
+    </div>
+
+    <div class="user-box">
+      <strong id="nomeUsuarioLogado"></strong>
+      <span id="setorUsuarioLogado"></span>
+    </div>
+
+    <button class="tab-btn active" data-tab="figurinhas">Figurinhas</button>
+    <button class="tab-btn" data-tab="pacotes">Pacotes</button>
+    <button class="tab-btn" data-tab="album">Meu Álbum</button>
+    <button class="tab-btn" data-tab="ranking">Ranking</button>
+    <button class="tab-btn" data-tab="sorteio">Sorteio</button>
+    <button class="tab-btn" data-tab="transparencia">Transparência</button>
+    <button id="btnGerencial" class="tab-btn hidden" data-tab="gerencial">Gerencial</button>
+
+    <button class="logout-btn" onclick="sair()">Sair</button>
+  </aside>
+
+  <main class="content">
+
+    <section id="figurinhas" class="tab active stickers-page">
+      <div class="stickers-hero">
+        <div class="stickers-hero-copy">
+          <span class="eyebrow">Coleção oficial Sances</span>
+          <h2>Conheça todas as figurinhas</h2>
+          <p>Cada pessoa faz parte dessa história. Descubra as cartas, as raridades e complete sua coleção.</p>
+
+          <div class="rarity-legend">
+            <span class="rarity-legend-item rarity-legend-incomum"><i></i> Incomum</span>
+            <span class="rarity-legend-item rarity-legend-epica"><i></i> Épica</span>
+            <span class="rarity-legend-item rarity-legend-lendaria"><i></i> Lendária</span>
+          </div>
+        </div>
+
+        <div class="stickers-hero-art" aria-hidden="true">
+          <div class="hero-card-art hero-card-art-one"><span>✦</span></div>
+          <div class="hero-card-art hero-card-art-two"><span>★</span></div>
+          <div class="hero-card-art hero-card-art-three"><span>◆</span></div>
+          <div class="hero-art-glow"></div>
+        </div>
+      </div>
+
+      <div id="listaFigurinhas" class="stickers-catalog"></div>
+    </section>
+
+    <section id="pacotes" class="tab packages-page">
+      <div class="packages-background-art" aria-hidden="true">
+        <span class="packages-orb packages-orb-one"></span>
+        <span class="packages-orb packages-orb-two"></span>
+        <span class="packages-star packages-star-one">✦</span>
+        <span class="packages-star packages-star-two">✧</span>
+        <span class="packages-star packages-star-three">✦</span>
+      </div>
+
+      <div class="packages-hero">
+        <div class="packages-hero-copy">
+          <span class="eyebrow">Abra, colecione e complete</span>
+          <h2>Seus pacotes estão esperando</h2>
+          <p>Descubra três figurinhas por pacote e acompanhe sua evolução no álbum da Sances.</p>
+
+          <div class="pack-stats pack-stats-premium">
+            <div class="pack-info pack-info-available">
+              <div class="pack-info-icon">🎁</div>
+              <div>
+                <span>PACOTES DISPONÍVEIS</span>
+                <strong id="contadorPacotes">0</strong>
+              </div>
+            </div>
+
+            <div class="pack-info pack-info-opened">
+              <div class="pack-info-icon">✨</div>
+              <div>
+                <span>PACOTES ABERTOS</span>
+                <strong id="contadorPacotesAbertos">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <button class="open-pack open-pack-premium" onclick="abrirPacote()">
+            <span class="open-pack-icon">✦</span>
+            <span>Abrir pacote agora</span>
+            <small>3 figurinhas surpresa</small>
+          </button>
+        </div>
+
+        <div class="package-showcase" aria-hidden="true">
+          <div class="showcase-halo showcase-halo-one"></div>
+          <div class="showcase-halo showcase-halo-two"></div>
+          <div class="showcase-card showcase-card-left"><span>?</span></div>
+          <div class="showcase-card showcase-card-right"><span>?</span></div>
+          <div class="showcase-pack">
+            <div class="showcase-pack-top"></div>
+            <div class="showcase-pack-face">
+              <img src="img/principal.png" alt="">
+              <strong>SANCES</strong>
+              <span>PACK</span>
+            </div>
+            <div class="showcase-pack-bottom"></div>
+          </div>
+          <span class="showcase-particle particle-one">✦</span>
+          <span class="showcase-particle particle-two">✦</span>
+          <span class="showcase-particle particle-three">✧</span>
+        </div>
+      </div>
+
+      <div id="resultadoPacote" class="pack-result pack-result-premium"></div>
+    </section>
+
+    <section id="album" class="tab"></section>
+
+    <section id="ranking" class="tab ranking-page">
+      <div class="ranking-hero">
+        <div class="ranking-hero-copy">
+          <span class="eyebrow">Competição saudável</span>
+          <h2>Ranking da Coleção</h2>
+          <p>Veja quem está mais perto de completar o álbum e acompanhe a evolução de toda a equipe.</p>
+        </div>
+
+        <div class="ranking-hero-art" aria-hidden="true">
+          <div class="podium-glow"></div>
+          <div class="podium-column podium-column-2"><span>2</span></div>
+          <div class="podium-column podium-column-1"><span>1</span></div>
+          <div class="podium-column podium-column-3"><span>3</span></div>
+          <div class="podium-crown">🏆</div>
+        </div>
+      </div>
+
+      <div id="rankingPodio" class="ranking-podium"></div>
+
+      <div class="ranking-list-header ranking-list-header-simple">
+        <div>
+          <span class="eyebrow">Classificação geral</span>
+          <h3>Todos os participantes</h3>
+          <p>Posição, progresso e números principais de cada pessoa.</p>
+        </div>
+      </div>
+
+      <div id="rankingLista" class="ranking-list ranking-list-modern"></div>
+    </section>
+
+    <section id="sorteio" class="tab">
+      <div class="section-heading"><div><span class="eyebrow">Sorteio oficial</span><h2>Roleta de Funcionários</h2><p>Todos podem acompanhar. Somente administradores podem sortear.</p></div><div class="section-icon">🎡</div></div>
+      <div class="draw-layout">
+        <div class="roulette-card">
+          <div class="roulette-stage"><div id="rouletteWheel" class="roulette-wheel"><div id="rouletteName" class="roulette-name"><small>Sorteio Sances</small><strong>Pronto?</strong></div></div><div class="roulette-pointer"></div></div>
+          <div id="controlesSorteio" class="draw-admin-controls hidden">
+            <label for="quantidadeSorteados">Quantidade de pessoas</label>
+            <div class="draw-control-row"><select id="quantidadeSorteados"><option value="1">1 pessoa</option><option value="2">2 pessoas</option><option value="3" selected>3 pessoas</option><option value="4">4 pessoas</option><option value="5">5 pessoas</option></select><button id="btnSortearFuncionarios" type="button" onclick="sortearFuncionarios()">Girar roleta</button></div>
+          </div>
+          <div id="resultadoSorteio" class="draw-result"><span>O próximo resultado aparecerá aqui.</span></div>
+        </div>
+        <div class="draw-side">
+          <div class="premium-panel"><div class="panel-title-row"><h3>Participantes</h3><span id="totalParticipantesSorteio" class="mini-badge">0</span></div><div id="listaParticipantesSorteio" class="participant-list"></div></div>
+          <div class="premium-panel"><h3>Últimos sorteios</h3><div id="historicoSorteios" class="draw-history"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="transparencia" class="tab">
+      <h2>Portal da Transparência</h2>
+      <p>Registro público de pacotes recebidos, removidos e figurinhas encontradas.</p>
+      <div id="listaLogs" class="logs-list"></div>
+    </section>
+
+    <section id="gerencial" class="tab">
+      <div class="section-heading"><div><span class="eyebrow">Controle administrativo</span><h2>Painel Gerencial</h2><p>Gerencie pacotes, senhas e acompanhe os números do álbum.</p></div><div class="section-icon">⚙️</div></div>
+      <div id="painelMetricasGerencial" class="admin-metrics"></div>
+      <div class="admin-panel admin-panel-premium">
+        <h3>Funcionários cadastrados</h3>
+        <div id="listaGerencial"></div>
+      </div>
+
+      <div class="admin-panel">
+        <h3>Adicionar nova figurinha</h3>
+
+        <input id="novaNome" placeholder="Nome">
+        <input id="novoSetor" placeholder="Setor">
+
+        <select id="novaRaridade">
+          <option value="incomum">Incomum - 25%</option>
+          <option value="rara">Épica - 10%</option>
+          <option value="lendaria">Lendária - 3%</option>
+        </select>
+
+        <input id="novoEmoji" placeholder="Emoji" value="👤">
+
+        <button onclick="adicionarFigurinha()">Adicionar figurinha</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+
+<div id="modalCarta" class="card-inspect-modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalCartaNome">
+  <div class="card-inspect-backdrop" onclick="fecharInspecaoCarta()"></div>
+  <div class="card-inspect-shell">
+    <button class="card-inspect-close" type="button" onclick="fecharInspecaoCarta()" aria-label="Fechar">×</button>
+    <div id="cartaInspecionada" class="inspect-card-wrap"></div>
+    <div class="inspect-card-copy">
+      <img src="img/principal.png" alt="Sances" class="inspect-logo">
+      <span class="inspect-kicker">Sua figurinha Sances</span>
+      <h2 id="modalCartaNome">Figurinha</h2>
+      <p id="modalCartaFrase"></p>
+      <div class="inspect-share-box">
+        <strong>📸 Registre esse momento!</strong>
+        <span>Tire uma foto ou print da sua carta, poste no Instagram e marque <b>@sances_dms</b>.</span>
+      </div>
+      <button id="btnCopiarInstagram" class="inspect-share-button" type="button" onclick="copiarInstagram()">Copiar @sances_dms</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalSenha" class="app-modal hidden" role="dialog" aria-modal="true">
+  <div class="app-modal-card">
+    <button class="modal-close" type="button" onclick="fecharModalSenha()">×</button>
+    <span class="modal-icon">🔑</span><h2>Redefinir senha</h2><p id="modalSenhaUsuario">Funcionário</p>
+    <input id="modalSenhaUserId" type="hidden"><label for="novaSenhaAdmin">Nova senha temporária</label>
+    <input id="novaSenhaAdmin" type="password" minlength="6" placeholder="Mínimo de 6 caracteres"><small id="erroModalSenha" class="modal-error"></small>
+    <button id="btnConfirmarNovaSenha" type="button" onclick="confirmarRedefinicaoSenha()">Salvar nova senha</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>
